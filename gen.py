@@ -7,7 +7,7 @@ W = 256
 H = 382
 SZ = H * W
 data = bytes
-SPECIMENT_CNT = 40
+SPECIMENT_CNT = 4
 specimen = [0] * SPECIMENT_CNT
 
 
@@ -25,18 +25,31 @@ class MutateHandler(Thread):
         for n in range(y, h + y):
             for m in range(x, w + x):
                 self.specimen[n * W + m] = (self.specimen[n * W + m] + c) >> 1
-        print(self.name)
+                # print(self.name)
+
+class ScoreHandler(Thread):
+    def __init__(self, specimen):
+        super().__init__()
+        self.specimen = specimen
 
 def mutate():
     threads = list()
-
-    for i in range(0, SPECIMENT_CNT):
+    for i in range(SPECIMENT_CNT):
         m = MutateHandler(specimen[i])
         m.start()
         threads.append(m)
-
     for m in threads:
         m.join()
+
+def score():
+    threads = list()
+    for i in range(SPECIMENT_CNT):
+        s = ScoreHandler(specimen[i])
+        s.start()
+        threads.append(s)
+    for s in threads:
+        s.join()
+
 
 if __name__ == '__main__':
     # with open('mona_small_gray.raw', 'rb') as f:
@@ -49,7 +62,7 @@ if __name__ == '__main__':
         specimen[i] = [0] * SZ
     random.seed(100)
 
-    mutate()
+    for i in range(10):
+        mutate()
 
-
-
+        score()
