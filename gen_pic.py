@@ -2,22 +2,31 @@
 
 import random
 from threading import Thread
+import copy
 
+import datetime
 from PIL import Image
 
 W = 256
 H = 382
 SZ = H * W
 data = bytes
-SPECIMENT_CNT = 4
+SPECIMENT_CNT = 300
+BEST_CNT = 3
 specimens = [0] * SPECIMENT_CNT
 
 
-class Specimen():
+class Specimen:
     def __init__(self, name='mona'):
         self.data = [0] * SZ
         self.score = -1
         self.name = name
+
+    def __str__(self):
+        return self.name + ' ' + str(self.score)
+
+    def __repr__(self):
+        return repr((self.name, self.score))
 
 
 class MutateHandler(Thread):
@@ -34,8 +43,8 @@ class MutateHandler(Thread):
         for n in range(y, h + y):
             for m in range(x, w + x):
                 self.specimen.data[n * W + m] = (self.specimen.data[n * W + m] + c) >> 1
-        im = Image.frombytes('P', (W, H), bytes(self.specimen.data))
-        im.save('/tmp/mona_sp_' + self.name + '.png')
+                # im = Image.frombytes('P', (W, H), bytes(self.specimen.data))
+                # im.save('/tmp/mona_sp_' + self.name + '.png')
 
 
 class ScoreHandler(Thread):
@@ -44,35 +53,50 @@ class ScoreHandler(Thread):
         self.specimen = specimen
 
     def run(self):
-        print('score ' + self.name + ' start')
+        # print('score ' + self.name + ' start')
         _score = 0
         for i in range(SZ):
             a = data[i]
             b = self.specimen.data[i]
             _score += (a - b) ** 2
         self.specimen.score = _score
-        print(self.name, self.specimen.name, str(self.specimen.score))
-        print('score ' + self.name + ' stop')
+        # print(self.name, self.specimen)
+        # print('score ' + self.name + ' stop')
 
 
 def mutate():
     threads = list()
     for specimen in specimens:
-        m = MutateHandler(specimen)
-        m.start()
-        threads.append(m)
-    for m in threads:
-        m.join()
+        thread = MutateHandler(specimen)
+        thread.start()
+        threads.append(thread)
+    for thread in threads:
+        thread.join()
 
 
 def score():
     threads = list()
-    for i in range(SPECIMENT_CNT):
-        s = ScoreHandler(specimens[i])
-        s.start()
-        threads.append(s)
-    for s in threads:
-        s.join()
+    for specimen in specimens:
+        thread = ScoreHandler(specimen)
+        thread.start()
+        threads.append(thread)
+    for thread in threads:
+        thread.join()
+
+    return sorted(specimens, key=lambda spec: spec.score)
+
+
+def cross():
+    new_specimens = [0] * SPECIMENT_CNT
+    for i in range(len(specimens)):
+        new_specimens[i] = copy.deepcopy(specimens[i % BEST_CNT])
+    return new_specimens
+
+
+def dump_best(step):
+    best = specimens[0]
+    im = Image.frombytes('P', (W, H), bytes(best.data))
+    im.save('/tmp/mona_best_{:0>5}.png'.format(step))
 
 
 if __name__ == '__main__':
@@ -83,10 +107,17 @@ if __name__ == '__main__':
     data = im.tobytes()
     im.close()
     for i in range(SPECIMENT_CNT):
-        specimens[i] = Specimen(str(i))
+        specimens[i] = Specimen('mona_' + str(i))
     random.seed(100)
 
-    for i in range(2):
+    for i in range(25):
+        print('{0:%Y-%m-%d %H:%M:%S} step {1:d} started'.format(datetime.datetime.now(), i))
         mutate()
-
-        score()
+        print('{0:%Y-%m-%d %H:%M:%S} step {1:d} mutate done'.format(datetime.datetime.now(), i))
+        specimens = score()
+        print('{0:%Y-%m-%d %H:%M:%S} step {1:d} score done'.format(datetime.datetime.now(), i))
+        # print('plain', specimens)
+        specimens = cross()
+        print('{0:%Y-%m-%d %H:%M:%S} step {1:d} cross done'.format(datetime.datetime.now(), i))
+        print('crossed', specimens[:BEST_CNT])
+        dump_best(i)
