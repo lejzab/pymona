@@ -12,31 +12,37 @@ services:
       - "8000:8000"
     volumes:
       - ./pymona:/pymona
-    # depends_on:
-      # - broker
+    depends_on:
+      - broker
 
-  # worker:
-  #   build: .
-  #   image: *app
-  #   restart: "no"
-  #   env_file: *envfile
-  #   command: ["celery", "worker", "--app=worker.worker.app", "--concurrency=1", "--hostname=worker@%h", "--loglevel=INFO"]
-  #   volumes:
-  #     - ./app:/app
-  #   depends_on:
-  #     - broker
-  #
-  # flower:
-  #   image: mher/flower
-  #   restart: "no"
-  #   env_file: *envfile
-  #   ports:
-  #     - "5555:5555"
-  #   depends_on:
-  #     - broker
-  #
-  # broker:
-  #   image: rabbitmq:3
-  #   env_file: *envfile
+  worker:
+    build: .
+    image: *app
+    restart: "no"
+    env_file: *envfile
+    command: ["celery", "worker", "--app=pymona", "--concurrency=1", "--hostname=worker@%h", "--loglevel=INFO"]
+    volumes:
+      - ./pymona:/pymona
+    depends_on:
+      - broker
+    deploy:
+      mode: replicated
+      replicas: 6
+
+  flower:
+    image: mher/flower
+    restart: "no"
+    env_file: *envfile
+    ports:
+      - "5555:5555"
+    depends_on:
+      - broker
+
+  broker:
+    image: rabbitmq:3
+    env_file: *envfile
     # ports:
     #   - 5672:5672
+  redis:
+    image: 'bitnami/redis:latest'
+    env_file: *envfile
