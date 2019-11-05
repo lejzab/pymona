@@ -1,0 +1,6 @@
+celery==4.3.0
+Django
+djangorestframework==3.8.2
+django-debug-toolbar
+django-extensions
+requests
