@@ -1,0 +1,6 @@
+celery[redis]==4.3.0
+Django
+djangorestframework
+django-debug-toolbar
+django-extensions
+requests

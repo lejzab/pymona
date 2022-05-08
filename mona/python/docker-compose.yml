@@ -1,0 +1,48 @@
+version: '3.5'
+services:
+
+  app:
+    build: .
+    image: &app pymona:0.1
+    restart: "no"
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    env_file: &envfile
+      - env.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./pymona:/pymona
+    depends_on:
+      - broker
+
+  worker:
+    build: .
+    image: *app
+    restart: "no"
+    env_file: *envfile
+    command: ["celery", "worker", "--app=pymona", "--concurrency=1", "--hostname=worker@%h", "--loglevel=INFO"]
+    volumes:
+      - ./pymona:/pymona
+    depends_on:
+      - broker
+    deploy:
+      mode: replicated
+      replicas: 6
+
+  flower:
+    image: mher/flower
+    restart: "no"
+    env_file: *envfile
+    ports:
+      - "5555:5555"
+    depends_on:
+      - broker
+
+  broker:
+    image: rabbitmq:3
+    env_file: *envfile
+    # ports:
+    #   - 5672:5672
+  redis:
+    image: 'bitnami/redis:latest'
+    env_file: *envfile
