@@ -1,1 +1,1 @@
-#mandelbrot set visuals
+# mandelbrot set visuals
